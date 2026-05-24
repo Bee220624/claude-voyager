@@ -1,0 +1,365 @@
+/* Claude Voyager 时间轴样式
+ *
+ * 布局策略：
+ *  - .voyager-timeline 的宽度 / 预览可见性 由 .is-expanded 类决定
+ *      .is-expanded → 宽 264px，所有预览常驻
+ *      不带 → 宽 56px，只显示节点
+ *  - 进度条：顶部「时间轴 46%」 + 标题下方的水平进度条（is-expanded 才有意义，但常驻）
+ *  - z-index 极高，避免被 Claude 的 modal 盖住时间轴本身（modal 仍可正常使用）
+ */
+
+#voyager-timeline-root {
+  position: fixed;
+  top: 80px;
+  right: 12px;
+  z-index: 2147483000;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',
+    'Microsoft YaHei', sans-serif;
+  pointer-events: none;
+}
+
+#voyager-timeline-root.is-empty {
+  display: none;
+}
+
+.voyager-timeline {
+  --voyager-bg: rgba(255, 255, 255, 0.92);
+  --voyager-fg: #2a2a2a;
+  --voyager-muted: #8a8a8a;
+  --voyager-accent: #c76946;
+  --voyager-rail: rgba(0, 0, 0, 0.08);
+  --voyager-hover: rgba(199, 105, 70, 0.1);
+  --voyager-viewport: rgba(199, 105, 70, 0.18);
+  --voyager-fill: linear-gradient(90deg, rgba(199, 105, 70, 0.85), rgba(217, 138, 102, 0.95));
+
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  width: 56px;
+  max-height: calc(100vh - 120px);
+  padding: 10px 6px;
+  border-radius: 14px;
+  background: var(--voyager-bg);
+  color: var(--voyager-fg);
+  backdrop-filter: blur(12px) saturate(120%);
+  -webkit-backdrop-filter: blur(12px) saturate(120%);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12), 0 1px 0 rgba(255, 255, 255, 0.6) inset;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  transition: width 0.18s ease, max-height 0.18s ease;
+  overflow: hidden;
+}
+
+/* 展开条件：要么是固定模式（is-pinned），要么用户正悬停面板 */
+.voyager-timeline.is-pinned,
+.voyager-timeline:hover,
+.voyager-timeline:focus-within {
+  width: 280px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .voyager-timeline {
+    --voyager-bg: rgba(34, 32, 30, 0.92);
+    --voyager-fg: #ebe6df;
+    --voyager-muted: #9b948c;
+    --voyager-accent: #d98a66;
+    --voyager-rail: rgba(255, 255, 255, 0.1);
+    --voyager-hover: rgba(217, 138, 102, 0.15);
+    --voyager-viewport: rgba(217, 138, 102, 0.22);
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5), 0 1px 0 rgba(255, 255, 255, 0.04) inset;
+    border-color: rgba(255, 255, 255, 0.06);
+  }
+}
+
+.voyager-timeline__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 2px 6px 6px;
+  font-size: 11px;
+  color: var(--voyager-muted);
+  white-space: nowrap;
+}
+
+.voyager-timeline__title {
+  font-weight: 600;
+  color: var(--voyager-fg);
+  display: none;
+  flex: 1 1 auto;
+}
+
+.voyager-timeline.is-pinned .voyager-timeline__title,
+.voyager-timeline:hover .voyager-timeline__title,
+.voyager-timeline:focus-within .voyager-timeline__title {
+  display: inline;
+}
+
+.voyager-timeline__pin {
+  all: unset;
+  width: 22px;
+  height: 22px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--voyager-muted);
+  opacity: 0.55;
+  filter: grayscale(0.7);
+  transition: opacity 0.12s ease, background 0.12s ease, filter 0.12s ease, transform 0.12s ease;
+}
+
+.voyager-timeline.is-pinned .voyager-timeline__pin,
+.voyager-timeline:hover .voyager-timeline__pin,
+.voyager-timeline:focus-within .voyager-timeline__pin {
+  display: inline-flex;
+}
+
+.voyager-timeline__pin:hover {
+  background: var(--voyager-hover);
+  opacity: 1;
+}
+
+.voyager-timeline__pin.is-on {
+  opacity: 1;
+  filter: none;
+  color: var(--voyager-accent);
+  transform: rotate(-12deg);
+}
+
+.voyager-timeline__pin.is-on:hover {
+  transform: rotate(0deg);
+}
+
+.voyager-timeline__progress {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--voyager-accent);
+  margin-left: auto;
+  font-size: 11px;
+}
+
+/* 顶部水平进度条 —— 即便面板没展开也可见 */
+.voyager-timeline__progressbar {
+  height: 3px;
+  margin: 0 4px 8px;
+  background: var(--voyager-rail);
+  border-radius: 2px;
+  overflow: hidden;
+  display: none;
+}
+
+.voyager-timeline.has-progress .voyager-timeline__progressbar {
+  display: block;
+}
+
+.voyager-timeline__progressbar-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--voyager-fill);
+  border-radius: 2px;
+  transition: width 0.08s linear;
+}
+
+.voyager-timeline:not(.has-progress) .voyager-timeline__progress {
+  display: none;
+}
+
+.voyager-timeline__footer {
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 6px 0;
+  font-size: 11px;
+  color: var(--voyager-muted);
+  white-space: nowrap;
+  border-top: 1px solid var(--voyager-rail);
+  display: none;
+}
+
+.voyager-timeline.is-pinned .voyager-timeline__footer,
+.voyager-timeline:hover .voyager-timeline__footer,
+.voyager-timeline:focus-within .voyager-timeline__footer {
+  display: flex;
+}
+
+.voyager-timeline__track {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--voyager-rail) transparent;
+  padding: 4px 0;
+}
+
+.voyager-timeline__track::-webkit-scrollbar {
+  width: 4px;
+}
+.voyager-timeline__track::-webkit-scrollbar-thumb {
+  background: var(--voyager-rail);
+  border-radius: 2px;
+}
+
+.voyager-timeline__rail {
+  position: absolute;
+  left: 17px;
+  top: 8px;
+  bottom: 8px;
+  width: 2px;
+  background: var(--voyager-rail);
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+.voyager-timeline__nodes {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.voyager-timeline__viewport {
+  position: absolute;
+  left: 14px;
+  top: 0;
+  width: 8px;
+  background: var(--voyager-viewport);
+  border-radius: 4px;
+  pointer-events: none;
+  transition: transform 0.08s linear;
+}
+
+.voyager-node {
+  all: unset;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px 4px 4px;
+  border-radius: 8px;
+  cursor: pointer;
+  position: relative;
+  min-height: 24px;
+  color: var(--voyager-fg);
+  transition: background 0.12s ease;
+}
+
+.voyager-node:hover {
+  background: var(--voyager-hover);
+}
+
+.voyager-node:focus-visible {
+  outline: 2px solid var(--voyager-accent);
+  outline-offset: 1px;
+}
+
+.voyager-node.is-active {
+  background: var(--voyager-hover);
+}
+
+.voyager-node__dot {
+  flex: 0 0 auto;
+  width: 10px;
+  height: 10px;
+  margin-left: 8px;
+  border-radius: 50%;
+  background: var(--voyager-muted);
+  border: 2px solid var(--voyager-bg);
+  box-shadow: 0 0 0 1px var(--voyager-rail);
+  transition: background 0.12s ease, transform 0.12s ease;
+}
+
+.voyager-node.is-active .voyager-node__dot {
+  background: var(--voyager-accent);
+  transform: scale(1.2);
+}
+
+.voyager-node__dot.is-starred {
+  background: var(--voyager-accent);
+}
+
+/* 预览：仅在 is-pinned（用户固定了）或鼠标悬停整个面板时显示 */
+.voyager-node__preview {
+  flex: 1 1 auto;
+  font-size: 12px;
+  line-height: 1.3;
+  color: var(--voyager-fg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+  display: none;
+}
+
+.voyager-timeline.is-pinned .voyager-node__preview,
+.voyager-timeline:hover .voyager-node__preview,
+.voyager-timeline:focus-within .voyager-node__preview {
+  display: inline-block;
+}
+
+/* 悬停 / 聚焦单个节点 → 文字就地换行展开（最多 8 行），节点行随之变高。
+   注意：必须排在上面的「显示」规则之后，靠源码顺序覆盖 display。 */
+.voyager-node:hover .voyager-node__preview,
+.voyager-node:focus-visible .voyager-node__preview {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 8;
+  white-space: normal;
+  overflow: hidden;
+  text-overflow: clip;
+  word-break: break-word;
+}
+
+/* 多行展开时让圆点 / 星标对齐到首行，而不是垂直居中到文字块中部 */
+.voyager-node:hover,
+.voyager-node:focus-visible {
+  align-items: flex-start;
+}
+.voyager-node:hover .voyager-node__dot,
+.voyager-node:focus-visible .voyager-node__dot {
+  margin-top: 3px;
+}
+.voyager-node:hover .voyager-node__star,
+.voyager-node:focus-visible .voyager-node__star {
+  margin-top: 1px;
+}
+
+.voyager-node__star {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  line-height: 1;
+  color: var(--voyager-muted);
+  opacity: 0;
+  border-radius: 4px;
+  transition: opacity 0.18s ease, color 0.12s ease, background 0.12s ease;
+  cursor: pointer;
+}
+
+.voyager-node:hover .voyager-node__star,
+.voyager-node__star.is-on {
+  opacity: 1;
+}
+
+/* 默认隐藏星标按钮（窄态下太挤），固定或悬停时才出现 */
+.voyager-timeline:not(.is-pinned):not(:hover):not(:focus-within) .voyager-node__star {
+  display: none;
+}
+
+.voyager-node__star.is-on {
+  color: var(--voyager-accent);
+}
+
+.voyager-node__star:hover {
+  background: var(--voyager-hover);
+}
+
+.voyager-timeline__count {
+  font-variant-numeric: tabular-nums;
+}

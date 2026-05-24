@@ -1,0 +1,9 @@
+{
+  "extName": {
+    "message": "Claude Voyager",
+    "description": "扩展名称"
+  },
+  "extDescription": {
+    "message": "为 claude.ai 网页端增加右侧时间轴导航、对话整理与按钮中文化的增强插件。"
+  }
+}

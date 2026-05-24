@@ -1,0 +1,552 @@
+/* Voyager 文件夹 —— 两块：
+ *  1) .voyager-sf：注入到 Claude 原生侧边栏的文件夹面板
+ *  2) #voyager-picker-dialog：「加入文件夹」模态对话框（body level）
+ *
+ * 注入到 Claude 侧边栏的部分要尽量「素」，不引入冲突布局；
+ * 模态对话框可以更花哨一点（独立 z-index 层）。
+ */
+
+/* ===========================================================================
+   0) 每条对话行上的「📁 加入文件夹」悬停按钮
+   =========================================================================== */
+
+.voyager-row-folder-btn {
+  position: absolute;
+  right: 30px; /* 留给 Claude 自己的三点按钮（在最右） */
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 5;
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+  opacity: 0;
+  filter: grayscale(0.4);
+  transition: opacity 0.12s ease, background 0.12s ease, transform 0.12s ease;
+}
+
+/* 行 hover 时显示；已归类的对话常驻淡显，方便辨认 */
+.voyager-row-host:hover .voyager-row-folder-btn,
+.voyager-row-folder-btn:focus-visible {
+  opacity: 1;
+}
+
+.voyager-row-folder-btn.is-filed {
+  opacity: 0.85;
+  filter: none;
+}
+
+.voyager-row-folder-btn:hover {
+  background: rgba(199, 105, 70, 0.18);
+  transform: translateY(-50%) scale(1.12);
+  opacity: 1;
+}
+
+/* ===========================================================================
+   1) Sidebar-injected panel
+   =========================================================================== */
+
+.voyager-sf {
+  --vsf-fg: currentColor;
+  --vsf-muted: rgba(127, 127, 127, 0.85);
+  --vsf-accent: #c76946;
+  --vsf-hover: rgba(199, 105, 70, 0.1);
+  --vsf-border: rgba(199, 105, 70, 0.35);
+  --vsf-bg: rgba(199, 105, 70, 0.06);
+
+  display: block;
+  margin: 8px 6px;
+  padding: 6px 8px 10px;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--vsf-fg);
+  background: var(--vsf-bg);
+  border: 1px solid var(--vsf-border);
+  border-radius: 8px;
+  position: relative;
+}
+
+.voyager-sf__header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 4px 6px;
+  font-size: 12px;
+  color: var(--vsf-accent);
+  font-weight: 700;
+}
+
+.voyager-sf__title {
+  flex: 1 1 auto;
+}
+
+.voyager-sf__btn {
+  all: unset;
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--vsf-muted);
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.voyager-sf__btn:hover {
+  background: var(--vsf-hover);
+  color: var(--vsf-fg);
+}
+
+.voyager-sf__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.voyager-sf__empty {
+  list-style: none;
+  padding: 8px 6px;
+  font-size: 12px;
+  color: var(--vsf-muted);
+  text-align: center;
+}
+
+.voyager-sf-folder {
+  margin: 1px 0;
+  border-radius: 6px;
+}
+
+.voyager-sf-folder.is-drop-target {
+  background: var(--vsf-hover);
+  outline: 2px dashed var(--vsf-accent);
+  outline-offset: -2px;
+}
+
+.voyager-sf-folder__header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 6px;
+  cursor: pointer;
+  border-radius: 6px;
+  user-select: none;
+  font-size: 13px;
+}
+
+.voyager-sf-folder__header:hover {
+  background: var(--vsf-hover);
+}
+
+.voyager-sf-folder__chevron {
+  font-size: 18px;
+  line-height: 1;
+  color: var(--vsf-muted);
+  transition: transform 0.12s ease;
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+.voyager-sf-folder__header:hover .voyager-sf-folder__chevron {
+  color: var(--vsf-accent);
+  background: var(--vsf-hover);
+}
+
+.voyager-sf-folder.is-expanded .voyager-sf-folder__chevron {
+  transform: rotate(90deg);
+}
+
+.voyager-sf-folder__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+
+.voyager-sf-folder__name {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.voyager-sf-folder__count {
+  font-size: 10px;
+  color: var(--vsf-muted);
+  font-variant-numeric: tabular-nums;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: var(--vsf-hover);
+}
+
+.voyager-sf-folder__more {
+  all: unset;
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--vsf-muted);
+  font-size: 13px;
+  opacity: 0;
+  transition: opacity 0.12s ease, background 0.12s ease;
+}
+
+.voyager-sf-folder__header:hover .voyager-sf-folder__more {
+  opacity: 1;
+}
+
+.voyager-sf-folder__more:hover {
+  background: var(--vsf-hover);
+  color: var(--vsf-fg);
+}
+
+.voyager-sf-folder__chats {
+  list-style: none;
+  margin: 0;
+  padding: 2px 0 4px 20px;
+  display: none;
+}
+
+.voyager-sf-folder.is-expanded .voyager-sf-folder__chats {
+  display: block;
+}
+
+.voyager-sf-folder__empty {
+  padding: 4px 6px;
+  font-size: 11px;
+  color: var(--vsf-muted);
+  font-style: italic;
+}
+
+.voyager-sf-chat {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 5px;
+  cursor: pointer;
+  user-select: none;
+  font-size: 12.5px;
+}
+
+.voyager-sf-chat:hover {
+  background: var(--vsf-hover);
+}
+
+.voyager-sf-chat.is-active {
+  background: var(--vsf-hover);
+  font-weight: 600;
+  color: var(--vsf-accent);
+}
+
+.voyager-sf-chat__title {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.voyager-sf-chat__remove {
+  all: unset;
+  width: 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 11px;
+  color: var(--vsf-muted);
+  opacity: 0;
+  transition: opacity 0.12s ease, background 0.12s ease;
+}
+
+.voyager-sf-chat:hover .voyager-sf-chat__remove {
+  opacity: 1;
+}
+
+.voyager-sf-chat__remove:hover {
+  background: var(--vsf-hover);
+  color: var(--vsf-accent);
+}
+
+/* ===========================================================================
+   2) Picker dialog（加入文件夹模态）
+   =========================================================================== */
+
+#voyager-picker-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483600;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei',
+    sans-serif;
+  font-size: 13px;
+  color: #2a2a2a;
+}
+
+.voyager-picker__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.32);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  animation: voyager-picker-fade 0.12s ease-out;
+}
+
+@keyframes voyager-picker-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.voyager-picker {
+  --vp-bg: #fdf8f2;
+  --vp-fg: #2a2a2a;
+  --vp-muted: #8a8a8a;
+  --vp-accent: #c76946;
+  --vp-border: rgba(0, 0, 0, 0.08);
+  --vp-hover: rgba(199, 105, 70, 0.08);
+
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(420px, 90vw);
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--vp-bg);
+  color: var(--vp-fg);
+  border-radius: 14px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.32);
+  overflow: hidden;
+  animation: voyager-picker-pop 0.14s ease-out;
+}
+
+@keyframes voyager-picker-pop {
+  from {
+    transform: translate(-50%, -48%) scale(0.97);
+    opacity: 0;
+  }
+  to {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .voyager-picker {
+    --vp-bg: #1f1d1b;
+    --vp-fg: #ebe6df;
+    --vp-muted: #9b948c;
+    --vp-accent: #d98a66;
+    --vp-border: rgba(255, 255, 255, 0.08);
+    --vp-hover: rgba(217, 138, 102, 0.12);
+  }
+
+  #voyager-picker-dialog {
+    color: #ebe6df;
+  }
+}
+
+.voyager-picker__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--vp-border);
+}
+
+.voyager-picker__title {
+  flex: 1 1 auto;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.voyager-picker__close {
+  all: unset;
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 18px;
+  color: var(--vp-muted);
+}
+
+.voyager-picker__close:hover {
+  background: var(--vp-hover);
+  color: var(--vp-fg);
+}
+
+.voyager-picker__chat {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--vp-border);
+  font-size: 12px;
+  color: var(--vp-muted);
+  background: rgba(0, 0, 0, 0.02);
+}
+
+@media (prefers-color-scheme: dark) {
+  .voyager-picker__chat {
+    background: rgba(255, 255, 255, 0.02);
+  }
+}
+
+.voyager-picker__chat strong {
+  flex: 1 1 auto;
+  font-weight: 600;
+  color: var(--vp-fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.voyager-picker__list {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.voyager-picker__empty {
+  padding: 16px 12px;
+  text-align: center;
+  color: var(--vp-muted);
+}
+
+.voyager-picker__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.1s ease;
+  user-select: none;
+}
+
+.voyager-picker__item:hover {
+  background: var(--vp-hover);
+}
+
+.voyager-picker__item.is-checked {
+  background: var(--vp-hover);
+}
+
+.voyager-picker__item input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--vp-accent);
+}
+
+.voyager-picker__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+
+.voyager-picker__name {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.voyager-picker__count {
+  font-size: 11px;
+  color: var(--vp-muted);
+  font-variant-numeric: tabular-nums;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--vp-hover);
+}
+
+.voyager-picker__new {
+  display: flex;
+  gap: 6px;
+  padding: 10px 16px;
+  border-top: 1px solid var(--vp-border);
+}
+
+.voyager-picker__input {
+  flex: 1 1 auto;
+  height: 30px;
+  padding: 0 10px;
+  border-radius: 6px;
+  border: 1px solid var(--vp-border);
+  background: var(--vp-bg);
+  color: var(--vp-fg);
+  font-size: 13px;
+  font-family: inherit;
+}
+
+.voyager-picker__input:focus {
+  outline: 2px solid var(--vp-accent);
+  outline-offset: -1px;
+}
+
+.voyager-picker__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 10px 16px 12px;
+  border-top: 1px solid var(--vp-border);
+}
+
+.voyager-btn {
+  all: unset;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 30px;
+  padding: 0 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  background: var(--vp-hover);
+  color: var(--vp-fg);
+  font-family: inherit;
+  transition: background 0.12s ease;
+}
+
+.voyager-btn:hover {
+  background: rgba(199, 105, 70, 0.16);
+}
+
+.voyager-btn--primary {
+  background: var(--vp-accent);
+  color: #fff;
+}
+
+.voyager-btn--primary:hover {
+  background: #b35a3a;
+}

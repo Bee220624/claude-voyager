@@ -1,0 +1,9 @@
+{
+  "extName": {
+    "message": "Claude Voyager",
+    "description": "Extension name"
+  },
+  "extDescription": {
+    "message": "Adds right-side timeline navigation, conversation organization, and Chinese UI localization for claude.ai."
+  }
+}

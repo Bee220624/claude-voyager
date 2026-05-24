@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Claude Voyager 设置</title>
+    <link rel="stylesheet" href="./popup.css" />
+  </head>
+  <body>
+    <header class="popup-header">
+      <div class="popup-title">
+        <span class="popup-mark"></span>
+        <span>Claude Voyager</span>
+      </div>
+      <span class="popup-version" id="version"></span>
+    </header>
+
+    <section class="popup-section">
+      <h2>右侧时间轴</h2>
+      <label class="row">
+        <span>
+          <strong>启用时间轴</strong>
+          <small>在对话页面右侧显示消息节点，可点击跳转</small>
+        </span>
+        <input type="checkbox" id="timelineEnabled" />
+      </label>
+      <label class="row">
+        <span>
+          <strong>默认固定预览</strong>
+          <small>开启 = 预览常驻显示；关闭 = 仅鼠标悬停时展开。也可点击面板右上的 📌 临时切换</small>
+        </span>
+        <input type="checkbox" id="previewPinned" />
+      </label>
+      <label class="row">
+        <span>
+          <strong>显示阅读进度</strong>
+          <small>顶部显示百分比，并在轨道上画当前视口滑块</small>
+        </span>
+        <input type="checkbox" id="showProgress" />
+      </label>
+    </section>
+
+    <section class="popup-section">
+      <h2>文件夹分组</h2>
+      <label class="row">
+        <span>
+          <strong>启用文件夹面板</strong>
+          <small>左下角弹出文件夹管理面板，可把对话按文件夹分组并拖拽</small>
+        </span>
+        <input type="checkbox" id="foldersEnabled" />
+      </label>
+    </section>
+
+    <section class="popup-section">
+      <h2>界面中文化</h2>
+      <label class="row">
+        <span>
+          <strong>启用按钮 / 菜单中文化</strong>
+          <small>把 Claude 网页端的按钮、菜单、提示文案替换为中文</small>
+        </span>
+        <input type="checkbox" id="chineseEnabled" />
+      </label>
+    </section>
+
+    <footer class="popup-footer">
+      <span class="popup-status" id="status">设置已自动保存</span>
+      <a href="https://claude.ai/" target="_blank" rel="noopener">打开 claude.ai →</a>
+    </footer>
+
+    <script type="module" src="./popup.ts"></script>
+  </body>
+</html>
