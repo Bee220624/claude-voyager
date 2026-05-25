@@ -10,6 +10,7 @@ const FIELDS: (keyof VoyagerSettings)[] = [
   'showProgress',
   'foldersEnabled',
   'chineseEnabled',
+  'mtFallbackEnabled',
 ];
 
 function $(id: string): HTMLInputElement {

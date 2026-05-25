@@ -11,6 +11,8 @@ export interface VoyagerSettings {
   chineseEnabled: boolean;
   /** 是否启用文件夹分组面板 */
   foldersEnabled: boolean;
+  /** 字典没有的英文 UI 文字，是否用 Chrome 端上翻译 API 兜底（结果缓存复用） */
+  mtFallbackEnabled: boolean;
 }
 
 export const DEFAULT_SETTINGS: VoyagerSettings = {
@@ -19,6 +21,7 @@ export const DEFAULT_SETTINGS: VoyagerSettings = {
   showProgress: true,
   chineseEnabled: true,
   foldersEnabled: true,
+  mtFallbackEnabled: true,
 };
 
 const STORAGE_KEY = 'voyager.settings';

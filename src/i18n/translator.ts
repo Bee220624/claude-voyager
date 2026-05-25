@@ -1,4 +1,5 @@
 import { TEXT_DICT, EXACT_WORDS, PATTERN_REPLACEMENTS } from './zh-CN';
+import { mtLookup, startMT, stopMT, scheduleScan as scheduleMtScan, isMtEnabled } from './mt';
 
 // 已翻译节点：避免反复处理同一节点（也用来在关闭时还原）。
 const ORIGINAL_TEXT = new WeakMap<Text, string>();
@@ -35,6 +36,9 @@ function translateString(raw: string): string | null {
       if (translated !== trimmed) return raw.replace(trimmed, translated);
     }
   }
+  // 第 4 级：端上翻译缓存（字典没有时才命中）
+  const mt = mtLookup(trimmed);
+  if (mt && mt !== trimmed) return raw.replace(trimmed, mt);
   return null;
 }
 
@@ -134,11 +138,29 @@ function restoreAll(): void {
   }
 }
 
-export function enableI18n(): void {
-  if (enabled) return;
+/** translator 重扫整页（供 MT 缓存更新后调用，把新译文应用上去）。 */
+function rewalkNow(): void {
+  if (enabled) walk(document.body);
+}
+
+/** 运行时开关 MT 兜底（不影响字典翻译）。 */
+export function setMtFallback(on: boolean): void {
+  if (on && !isMtEnabled()) {
+    void startMT(rewalkNow);
+  } else if (!on && isMtEnabled()) {
+    stopMT();
+  }
+}
+
+export function enableI18n(mtFallback = false): void {
+  if (enabled) {
+    setMtFallback(mtFallback);
+    return;
+  }
   enabled = true;
 
   walk(document.body);
+  setMtFallback(mtFallback);
 
   observer = new MutationObserver((records) => {
     for (const rec of records) {
@@ -152,6 +174,8 @@ export function enableI18n(): void {
     }
     // 兜底：DOM 活动后 600ms 整页重扫（设置页等异步内容靠这个补上）
     scheduleRewalk();
+    // 让 MT 兜底也扫一遍新出现的 UI 文字
+    if (isMtEnabled()) scheduleMtScan();
   });
 
   observer.observe(document.body, {
@@ -166,6 +190,7 @@ export function enableI18n(): void {
 export function disableI18n(): void {
   if (!enabled) return;
   enabled = false;
+  stopMT();
   observer?.disconnect();
   observer = null;
   if (rewalkTimer !== null) {

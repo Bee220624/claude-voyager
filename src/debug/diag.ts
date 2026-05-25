@@ -15,6 +15,7 @@ import { loadFolders } from '../folders/store';
 import { loadSettings } from '../storage/settings';
 import { findUserMessageElements, extractCleanText } from '../timeline/detector';
 import { TEXT_DICT, EXACT_WORDS, PATTERN_REPLACEMENTS } from '../i18n/zh-CN';
+import { getCacheSnapshot, getMtStatus } from '../i18n/mt';
 
 interface DiagReport {
   version: string;
@@ -322,6 +323,36 @@ const api = {
     console.log('%c[Voyager] ↑↑↑ harvest 结束 ↑↑↑', 'color:#c76946;font-weight:bold');
     return list;
   },
+  /** 打印端上翻译兜底状态（是否启用、是否可用、缓存了多少条）。 */
+  mtStatus(): void {
+    const s = getMtStatus();
+    console.log(
+      '%c[Voyager] 端上翻译兜底状态：',
+      'color:#c76946;font-weight:bold',
+      `\n  启用: ${s.enabled}`,
+      `\n  端上 API 可用: ${!s.unavailable}`,
+      `\n  已缓存译文: ${s.cached} 条`,
+    );
+    if (s.unavailable) {
+      console.log('  （不可用通常是 Chrome < 138 或非桌面版 / 未下模型；仅靠字典翻译）');
+    }
+  },
+  /** 导出 MT 缓存（自动攒的翻译数据集）为字典骨架，方便折叠进内置字典。 */
+  exportCache(): Record<string, string> {
+    const c = getCacheSnapshot();
+    const keys = Object.keys(c).sort((a, b) => a.localeCompare(b));
+    if (keys.length === 0) {
+      console.log('%c[Voyager] 缓存为空 —— 还没有端上翻译过的词条', 'color:#8a8a8a');
+      return c;
+    }
+    console.log(
+      `%c[Voyager] MT 缓存 ${keys.length} 条 ↓↓↓ 选中复制发我，我筛好折进内置字典 ↓↓↓`,
+      'color:#c76946;font-weight:bold',
+    );
+    console.log(keys.map((k) => `  ${JSON.stringify(k)}: ${JSON.stringify(c[k])},`).join('\n'));
+    console.log('%c[Voyager] ↑↑↑ MT 缓存结束 ↑↑↑', 'color:#c76946;font-weight:bold');
+    return c;
+  },
   /** 高亮所有侧边栏候选。 */
   showSidebar(): void {
     const cands = collectSidebarCandidates();
@@ -442,6 +473,8 @@ const api = {
 type DiagAction =
   | 'diag'
   | 'harvest'
+  | 'exportCache'
+  | 'mtStatus'
   | 'showSidebar'
   | 'showMenus'
   | 'showPanel'
@@ -455,6 +488,12 @@ document.addEventListener('voyager:diag-request', (e: Event) => {
       return;
     case 'harvest':
       api.harvest();
+      return;
+    case 'exportCache':
+      api.exportCache();
+      return;
+    case 'mtStatus':
+      api.mtStatus();
       return;
     case 'showSidebar':
       api.showSidebar();

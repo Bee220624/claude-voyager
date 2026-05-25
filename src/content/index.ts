@@ -7,7 +7,7 @@ import {
   disableTimeline,
   updateTimelineSettings,
 } from '../timeline/timeline';
-import { enableI18n, disableI18n, isI18nEnabled } from '../i18n/translator';
+import { enableI18n, disableI18n, isI18nEnabled, setMtFallback } from '../i18n/translator';
 import { enableFolders, disableFolders } from '../folders';
 
 // 入口：等 DOM 就绪后读取设置，按设置启用模块；之后监听 storage 变化做热更新。
@@ -23,11 +23,14 @@ function apply(settings: VoyagerSettings): void {
     disableTimeline();
   }
 
-  // 中文化（开关变化时全量启停）
+  // 中文化（开关变化时全量启停）；MT 兜底跟随各自开关
   if (settings.chineseEnabled && !isI18nEnabled()) {
-    enableI18n();
+    enableI18n(settings.mtFallbackEnabled);
   } else if (!settings.chineseEnabled && isI18nEnabled()) {
     disableI18n();
+  } else if (settings.chineseEnabled && isI18nEnabled()) {
+    // 中文化已开着，只是 MT 开关可能变了
+    setMtFallback(settings.mtFallbackEnabled);
   }
 
   // 文件夹面板

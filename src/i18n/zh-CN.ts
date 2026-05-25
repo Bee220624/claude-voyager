@@ -9,6 +9,7 @@
 
 export const TEXT_DICT: Readonly<Record<string, string>> = {
   // 主侧边栏 & 导航
+  'Home': '主页', // 导航语境固定译「主页」，盖掉 MT 误翻的「家」
   'New chat': '新建对话',
   'Start new chat': '新建对话',
   'Chats': '对话',
@@ -50,6 +51,12 @@ export const TEXT_DICT: Readonly<Record<string, string>> = {
   'Keyboard shortcuts': '键盘快捷键',
   'Get app': '下载应用',
   'Download app': '下载应用',
+  'Get apps and extensions': '获取应用和扩展',
+  'Get help': '获取帮助',
+  'Help center': '帮助中心',
+  'View all plans': '查看所有套餐',
+  'Gift Claude': '赠送 Claude',
+  'Refer a friend': '推荐给好友',
   'Learn more': '了解更多',
 
   // 模型选择
